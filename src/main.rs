@@ -124,13 +124,13 @@ impl CodeStructure {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-	// get collection handle 
+	// get database handle 
 	let mut client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
 	client_options.app_name = Some("Test Mongo App : ".to_string());
 	let client = Client::with_options(client_options)?;
 	let db = client.database("test");
 	
-	// set resource name, structure
+	// set resource name and structure
 	let resource = "template";	// TEMPORARY
 	const STRCT: &str = "R";	// TEMPORARY
 
@@ -157,7 +157,7 @@ async fn main() -> Result<()> {
 		// deserialize "Property"
 		// count properties 
 		match block {
-			Block::Resource(res) => {
+			Block::Resource(res) => { //TODO
 				for blk in res.contents {
 					if let Block::Property(pro) = blk {
 						let count =  property_count.entry(pro.property).or_insert(0);
@@ -166,7 +166,7 @@ async fn main() -> Result<()> {
 				}
 			},
 			_ => {}
-		};		
+		};
 	}
 
 	let mut property_count: Vec<(&String, &i32)> = property_count.iter().collect();
