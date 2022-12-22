@@ -95,16 +95,18 @@ impl CodeStructure {
 		}
 	}
 
+	// ex. 	"Statement.contents.Resource"
+	// 		"If.blocks.Resource"
 	fn get_match_string(&self) -> String {
 		let mut match_string = String::from("");
 		
 		for c in self.structure.iter() {
 			match c {
-				Blk::Statement 	=> { match_string.push_str("Statement.contents"); },
-				Blk::Resource 	=> { match_string.push_str("Resource.contents"); },
+				Blk::Statement 	=> { match_string.push_str("Statement.contents."); },
+				Blk::Resource 	=> { match_string.push_str("Resource.contents."); },
 				Blk::Property 	=> { },
-				Blk::If 		=> { match_string.push_str("If.blocks"); },
-				Blk::Case 		=> { match_string.push_str("Case.blocks"); },
+				Blk::If 		=> { match_string.push_str("If.blocks."); },
+				Blk::Case 		=> { match_string.push_str("Case.blocks."); },
 				Blk::Unknown	=> { },
 			}
 		}
@@ -113,6 +115,7 @@ impl CodeStructure {
 		// 未実装
 		
 		// 最後の.contentsを削除
+		match_string.pop();  // 末尾の . を削除
 		let dot_offset =  match_string.rfind('.').unwrap_or(match_string.len());
 		match_string.replace_range(dot_offset.., "");
 
@@ -122,17 +125,21 @@ impl CodeStructure {
 	}
 }
 
+// resource の property をカウントする関数
 #[tokio::main]
 async fn main() -> Result<()> {
+	const DB_NAME: &str = "test";
+	const DOC_NAME: &str = "test_collection";
+	
 	// get database handle 
 	let mut client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
 	client_options.app_name = Some("Test Mongo App : ".to_string());
 	let client = Client::with_options(client_options)?;
-	let db = client.database("test");
+	let db = client.database(DB_NAME);
 	
 	// set resource name and structure
 	let resource = "template";	// TEMPORARY
-	const STRCT: &str = "R";	// TEMPORARY
+	const STRCT: &str = "SR";	// TEMPORARY
 
 	// set find() condition
 	let strct = CodeStructure::new(STRCT);
@@ -142,13 +149,13 @@ async fn main() -> Result<()> {
 
 	// set find filter and options
 	let filter = doc!{match_resource: resource};
-	let find_options = FindOptions::builder()
-		.projection( doc! {"_id": 0, match_string: 1} )
-		.build();
+	//let find_options = FindOptions::builder()
+	//	.projection( doc! {"_id": 0, match_string: 1} )
+	//	.build();
 
 	// search entry
-	let blk_collection = db.collection::<Block>("test_collection");
-	let mut cursor = blk_collection.find(filter, find_options).await?;
+	let blk_collection = db.collection::<Block>(DOC_NAME);
+	let mut cursor = blk_collection.find(filter, None).await?;
 	
 	// aggression property
 	let mut property_count = HashMap::new();
@@ -187,7 +194,7 @@ async fn main() -> Result<()> {
 		]
 	};
 	
-	let block_collection = db.collection::<Document>("test_collection");
+	let block_collection = db.collection::<Document>(DOC_NAME);
 	let mut cursor = block_collection.find(filter, None).await?;	
 	while let Some(result) = cursor.try_next().await? {
 		println!("{}", result);
